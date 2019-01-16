@@ -1,0 +1,10 @@
+language: node_js
+node_js:
+  - "node"
+  - "10"
+  - "8"
+script:
+  - npm install
+  - npm run build
+  - npm test
+  - npm run travis-coverage
