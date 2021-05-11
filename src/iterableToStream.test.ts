@@ -10,6 +10,24 @@ describe('Validate iterableToStream', () => {
         const target = new WritableDataStream();
         const document = loremIpsum({ count: 100, units: 'paragraphs' });
         const words = document.split(/\b(?=\s)/g);
+        const targetStream = iterableToStream(words, { encoding: 'utf8', _useNode: false }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(document);
+    });
+
+    it('Object Mode Test creating a stream from an array', async () => {
+        const target = new WritableDataStream();
+        const document = loremIpsum({ count: 100, units: 'paragraphs' });
+        const words = document.split(/\b(?=\s)/g);
+        const targetStream = iterableToStream(words, { encoding: 'utf8', _useNode: false, objectMode: true }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(document);
+    });
+
+    it('Node.from Test creating a stream from an array', async () => {
+        const target = new WritableDataStream();
+        const document = loremIpsum({ count: 100, units: 'paragraphs' });
+        const words = document.split(/\b(?=\s)/g);
         const targetStream = iterableToStream(words).pipe(target);
         await streamToPromise(targetStream);
         expect(target.data.join('')).to.be.equal(document);
@@ -19,12 +37,21 @@ describe('Validate iterableToStream', () => {
         const target = new WritableDataStream();
         const document = loremIpsum({ count: 100, units: 'words' });
         const words = iterateWords(document, '.done.');
-        const targetStream = iterableToStream(words).pipe(target);
+        const targetStream = iterableToStream(words, { encoding: 'utf8', _useNode: false }).pipe(target);
         await streamToPromise(targetStream);
         expect(target.data.join('')).to.be.equal(document + '.done.');
     });
 
-    it('tests that empty values do not break the steam', async () => {
+    it('Node.from Test creating a stream from an array words', async () => {
+        const target = new WritableDataStream();
+        const document = loremIpsum({ count: 100, units: 'words' });
+        const words = iterateWords(document);
+        const targetStream = iterableToStream(words).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(document);
+    });
+
+    it('Node.from tests that empty values do not break the steam', async () => {
         const target = new WritableDataStream();
         const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', Buffer.from('', 'utf-8'), 'Last'];
         const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: true }).pipe(target);
@@ -32,16 +59,24 @@ describe('Validate iterableToStream', () => {
         expect(target.data.join('')).to.be.equal(data.filter((a) => !!a).join(''));
     });
 
+    it('tests that empty values do not break the steam', async () => {
+        const target = new WritableDataStream();
+        const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', Buffer.from('', 'utf-8'), 'Last'];
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: true, _useNode: false }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(data.filter((a) => !!a).join(''));
+    });
+
     it('tests that empty values stop the stream', async () => {
         const target = new WritableDataStream();
         const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', 'Last'];
-        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: false }).pipe(target);
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', _useNode: false }).pipe(target);
         await streamToPromise(targetStream);
         expect(target.data.join('')).to.be.equal(['One', 'Two', 'Three'].join(''));
     });
 });
 
-function* iterateWords(doc: string, final: string) {
+function* iterateWords(doc: string, final?: string) {
     const words = doc.split(/\b(?=\s)/g);
     yield* words;
     return final;
