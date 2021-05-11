@@ -17,13 +17,9 @@ export function iterableToStream<T extends Streamable>(
 }
 
 class ReadableObservableStream<T> extends stream.Readable {
+    private iter: Iterator<T, null | undefined | T>;
 
-    private iter: Iterator<T>;
-
-    constructor(
-        private _source: IterableLike<T>,
-        options: stream.ReadableOptions,
-    ) {
+    constructor(private _source: IterableLike<T>, options: stream.ReadableOptions) {
         super(options);
     }
 
@@ -32,16 +28,29 @@ class ReadableObservableStream<T> extends stream.Readable {
             this.iter = this._source[Symbol.iterator]();
         }
         let r = this.iter.next();
-        while (!r.done && this.push(r.value)) {
+        while (!r.done && this.pushValue(r.value)) {
             r = this.iter.next();
         }
         if (r.done) {
             // since it is possible for r.value to have something meaningful, we must check.
-            if (r.value !== null && r.value !== undefined) {
-                this.push(r.value);
-            }
+            this.pushValue(r.value);
             this.push(null);
         }
+    }
+
+    /**
+     * Push values into the stream iff they are not empty.
+     * @param v value to push if possible.
+     * @returns true if more values can be pushed.
+     */
+    private pushValue(v: T | null | undefined): boolean {
+        return (
+            v === undefined ||
+            v === null ||
+            (typeof v === 'string' && v === '') ||
+            (Buffer.isBuffer(v) && v.byteLength === 0) ||
+            this.push(v)
+        );
     }
 }
 
