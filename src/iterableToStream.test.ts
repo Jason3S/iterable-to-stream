@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import { Writable, WritableOptions } from 'stream';
-import * as loremIpsum from 'lorem-ipsum';
+import { loremIpsum } from 'lorem-ipsum';
 
 import iterableToStream from './iterableToStream';
 import { EventEmitter } from 'events';
 
 describe('Validate iterableToStream', () => {
     it('Test creating a stream from an array', async () => {
-        const target = new WritableDataStream()
+        const target = new WritableDataStream();
         const document = loremIpsum({ count: 100, units: 'paragraphs' });
         const words = document.split(/\b(?=\s)/g);
         const targetStream = iterableToStream(words).pipe(target);
@@ -15,25 +15,41 @@ describe('Validate iterableToStream', () => {
         expect(target.data.join('')).to.be.equal(document);
     });
 
-    it('Test creating a stream from an array', async () => {
-        const target = new WritableDataStream()
+    it('Test creating a stream from an array words', async () => {
+        const target = new WritableDataStream();
         const document = loremIpsum({ count: 100, units: 'words' });
         const words = iterateWords(document, '.done.');
         const targetStream = iterableToStream(words).pipe(target);
         await streamToPromise(targetStream);
         expect(target.data.join('')).to.be.equal(document + '.done.');
     });
+
+    it('tests that empty values do not break the steam', async () => {
+        const target = new WritableDataStream();
+        const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', Buffer.from('', 'utf-8'), 'Last'];
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: true }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(data.filter((a) => !!a).join(''));
+    });
+
+    it('tests that empty values stop the stream', async () => {
+        const target = new WritableDataStream();
+        const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', 'Last'];
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: false }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(['One', 'Two', 'Three'].join(''));
+    });
 });
 
-function *iterateWords(doc: string, final: string) {
+function* iterateWords(doc: string, final: string) {
     const words = doc.split(/\b(?=\s)/g);
-    yield *words;
+    yield* words;
     return final;
 }
 
 class WritableDataStream extends Writable {
     private _data: string[] = [];
-    static readonly  defaultOptions = { decodeStrings: false, highWaterMark: 64 };
+    static readonly defaultOptions = { decodeStrings: false, highWaterMark: 64 };
 
     constructor(options: WritableOptions = WritableDataStream.defaultOptions) {
         super({ ...WritableDataStream.defaultOptions, ...options });
@@ -50,7 +66,9 @@ class WritableDataStream extends Writable {
         callback();
     }
 
-    get data() { return this._data; }
+    get data() {
+        return this._data;
+    }
 }
 
 function streamToPromise(stream: EventEmitter): Promise<void> {
@@ -99,5 +117,3 @@ function streamToPromise(stream: EventEmitter): Promise<void> {
         }
     });
 }
-
-
