@@ -1,0 +1,14 @@
+{
+    "version": "0.1",
+    "ignorePaths": [
+        "package-lock.json",
+        "/coverage",
+        "/node_modules",
+        "/dist",
+        "/.nyc_output",
+        "/.vscode"
+    ],
+    "words": [
+        "lcov"
+    ]
+}
