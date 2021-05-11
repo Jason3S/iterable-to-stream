@@ -26,10 +26,18 @@ describe('Validate iterableToStream', () => {
 
     it('tests that empty values do not break the steam', async () => {
         const target = new WritableDataStream();
-        const data = ['One', 'Two', 'Three', '', null, undefined, 'Last'];
-        const targetStream = iterableToStream(data as string[]).pipe(target);
+        const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', Buffer.from('', 'utf-8'), 'Last'];
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: true }).pipe(target);
         await streamToPromise(targetStream);
         expect(target.data.join('')).to.be.equal(data.filter((a) => !!a).join(''));
+    });
+
+    it('tests that empty values stop the stream', async () => {
+        const target = new WritableDataStream();
+        const data = ['One', 'Two', 'Three', '', null, undefined, 'buffer', 'Last'];
+        const targetStream = iterableToStream(data as string[], { encoding: 'utf8', removeEmpty: false }).pipe(target);
+        await streamToPromise(targetStream);
+        expect(target.data.join('')).to.be.equal(['One', 'Two', 'Three'].join(''));
     });
 });
 
